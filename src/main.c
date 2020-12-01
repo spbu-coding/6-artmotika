@@ -135,8 +135,8 @@ int main(int argc, char** argv) {
 
     if (name_sort_index == 0) bubble(sorting_strings, number_of_sorting_elements, compareFunc);
     else if (name_sort_index == 1) insertion(sorting_strings, number_of_sorting_elements, compareFunc);
-    else if (name_sort_index == 2) merge(sorting_strings, number_of_sorting_elements, compareFunc, 0,  number_of_sorting_elements);
-    else if (name_sort_index == 3) quick(sorting_strings, number_of_sorting_elements, compareFunc, 0, number_of_sorting_elements-1);
+    else if (name_sort_index == 2) merge(sorting_strings, number_of_sorting_elements, compareFunc);
+    else if (name_sort_index == 3) quick(sorting_strings, number_of_sorting_elements, compareFunc);
     else if (name_sort_index == 4) radix(sorting_strings, number_of_sorting_elements, compareFunc);
 
     //---------------------------------------------------------------
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     if (name_comparateur_index){
-        for (int i = number_of_sorting_elements-1; i >= 0; --i){
+        for (int i = (int)number_of_sorting_elements-1; i >= 0; --i){
             fwrite(sorting_strings[i], sizeof(char), strlen(sorting_strings[i]), output_file);
         }
     }else{
@@ -222,16 +222,20 @@ void merge_arrays(strings_array_t array, int left, int middle, int right){
     }
 }
 
-void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func, int left, int right){
+void merge_wrapper(strings_array_t array, array_size_t size, comparator_func_t compare_func, int left, int right){
     if (left + 1 >= right)
         return;
     int middle = (left + right) / 2;
-    merge(array, size, compare_func, left, middle);
-    merge(array, size, compare_func, middle, right);
+    merge_wrapper(array, size, compare_func, left, middle);
+    merge_wrapper(array, size, compare_func, middle, right);
     merge_arrays(array, left, middle, right);
 }
 
-void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func, int first, int last){
+void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func){
+    merge_wrapper(array, size, compareFunc, 0,  (int)size);
+}
+
+void quick_wrapper(strings_array_t array, array_size_t size, comparator_func_t compare_func, int first, int last){
     if (first < last){
         int left = first, right = last;
         char* middle = array[(left+right)/2];
@@ -246,11 +250,16 @@ void quick(strings_array_t array, array_size_t size, comparator_func_t compare_f
                 right--;
             }
         }while (left <= right);
-        quick(array, size, compare_func, first, right);
-        quick(array, size, compare_func, left, last);
+        quick_wrapper(array, size, compare_func, first, right);
+        quick_wrapper(array, size, compare_func, left, last);
 
     }
 }
+
+void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func){
+    quick_wrapper(array, size, compare_func, 0, (int)size-1);
+}
+
 void radix(strings_array_t array, array_size_t size, comparator_func_t compare_func){
     size_t length[size], max_length = 0;
     for (unsigned int i = 0; i < size; i++) {
