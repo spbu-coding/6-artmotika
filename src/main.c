@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     }
 
     fclose(input_file);
-    //---------------------------------------------------------------
+    //----------------------Sorting strings---------------------------
 
     if (name_sort_index == 0) bubble(sorting_strings, number_of_sorting_elements, compareFunc);
     else if (name_sort_index == 1) insertion(sorting_strings, number_of_sorting_elements, compareFunc);
@@ -155,7 +155,6 @@ int main(int argc, char** argv) {
             fwrite(sorting_strings[i], sizeof(char), strlen(sorting_strings[i]), output_file);
         }
     }
-
 
     fclose(output_file);
     free_results(sorting_strings, number_of_sorting_elements);
@@ -214,32 +213,31 @@ void merge(strings_array_t array, array_size_t size, comparator_func_t compare_f
     }
 }
 
-void quick_wrapper(strings_array_t array, int left, int right, comparator_func_t compare_func){
-    char* pivot = array[left];
-    int l_hold = left;
-    int r_hold = right;
-    while (left < right){
-        while (((compare_func(array[right], pivot)) || array[right] == pivot) && (left < right))
-            right--;
-        if (left != right){
-            array[left] = array[right];
-            left++;
+int partition(strings_array_t array, int low, int high, comparator_func_t compare_func){
+    int i = low, j = high + 1;
+    while(1){
+        while(compare_func(array[low], array[++i])){
+            if (i == high) break;
         }
-        while(((compare_func(pivot, array[left])) || array[left] == pivot )&& (left < right))
-            left++;
-        if (left != right){
-            array[right] = array[left];
-            right--;
+        while (compare_func(array[--j], array[low])){
+            if (j == low) break;
         }
+        if (i >= j) break;
+        char* tmp = array[i];
+        array[i] = array[j];
+        array[j] = tmp;
     }
-    array[left] = pivot;
-    int tmp = left;
-    left = l_hold;
-    right = r_hold;
-    if (left < tmp)
-        quick_wrapper(array, left, tmp - 1, compare_func);
-    if (right > tmp)
-        quick_wrapper(array, tmp + 1, right, compare_func);
+    char* tmp = array[low];
+    array[low] = array[j];
+    array[j] = tmp;
+    return j;
+}
+
+void quick_wrapper(strings_array_t array, int low, int high, comparator_func_t compare_func){
+    if (high <= low) return;
+    int j = partition(array, low, high, compare_func);
+    quick_wrapper(array, low, j - 1, compare_func);
+    quick_wrapper(array, j + 1, high, compare_func);
 }
 
 void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func) {
