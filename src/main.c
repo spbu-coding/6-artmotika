@@ -17,12 +17,6 @@ void free_results(char **results, unsigned int count) {
     free(results);
 }
 
-void fill_in_string(char* string, strings_array_t sorting_strings, unsigned int count_index){
-    for (unsigned long i = 0; i < strlen(string); ++i){
-        sorting_strings[count_index][i] = string[i];
-    }
-}
-
 int compare_strings(char* string1, char* string2){
     if (strlen(string1) == strlen(string2)){
         for (unsigned long i = 0; i < strlen(string1); ++i){
@@ -36,11 +30,11 @@ int compare_strings(char* string1, char* string2){
 
 int read_arguments(int argc, char** argv, int* name_sort_index, int* name_comparateur_index){
     if (argc != 6) {
-        fprintf(stderr, "Incorrect number of arguments");
+        fprintf(stderr, "Incorrect number of arguments. Should be 5 arguments\n");
         return -1;
     }
-    if (!atoi(argv[1])){
-        fprintf(stderr, "The first argument should be number");
+    if (!atoi(argv[1]) || atoi(argv[1]) < 0){
+        fprintf(stderr, "The first argument should be number > 0\n");
         return -1;
     }
     for (int j = 2; j < 4; ++j) {
@@ -53,27 +47,27 @@ int read_arguments(int argc, char** argv, int* name_sort_index, int* name_compar
         }
         if ((index_expansion != 0) && (index_expansion + 3 == strlen(argv[j]))) {
             if (argv[j][index_expansion] != 't') {
-                fprintf(stderr, "Incorrect expansion");
+                fprintf(stderr, "Incorrect expansion\n");
                 return -1;
             }
             if (argv[j][index_expansion + 1] != 'x') {
-                fprintf(stderr, "Incorrect expansion");
+                fprintf(stderr, "Incorrect expansion\n");
                 return -1;
             }
             if (argv[j][index_expansion + 2] != 't') {
-                fprintf(stderr, "Incorrect expansion");
+                fprintf(stderr, "Incorrect expansion\n");
                 return -1;
             }
         } else {
-            fprintf(stderr, "Incorrect expansion");
+            fprintf(stderr, "Incorrect expansion\n");
             return -1;
         }
     }
-
+    size_t count_of_sorts = 5;
     char* names_sorts[5] = {"bubble", "insertion", "merge", "quick", "radix"};
 
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < (int)count_of_sorts; ++i) {
         if (compare_strings(argv[4], names_sorts[i])) *name_sort_index = i;
     }
     if (*name_sort_index == -1) return -1;
@@ -87,6 +81,22 @@ int read_arguments(int argc, char** argv, int* name_sort_index, int* name_compar
     return 0;
 }
 
+int get_info_file(FILE* file, size_t max_length_of_string, strings_array_t sorting_strings, size_t number_of_sorting_elements) {
+    size_t i;
+    for (i = 0; i < number_of_sorting_elements && !feof(file); i++) {
+        if(fgets(sorting_strings[i], max_length_of_string, file) == NULL) {
+            fprintf(stderr, "Error in get_info_file() in fgets()\n");
+            return -1;
+        }
+    }
+    if(i < number_of_sorting_elements && feof(file)) {
+        fprintf(stderr, "Нou specified more arguments than there are in the file\n");
+        return -1;
+    }
+    else
+        return 0;
+}
+
 int main(int argc, char** argv) {
     int name_sort_index = -1;
     int name_comparateur_index;
@@ -97,40 +107,29 @@ int main(int argc, char** argv) {
     if (sorting_strings == NULL) return -1;
     for (unsigned int i = 0; i < number_of_sorting_elements; ++i){
         sorting_strings[i] = (char*) malloc(MAX_INPUT_STRING_SIZE * sizeof(char));
-        if (sorting_strings[i] == NULL) return -1;
+        if (sorting_strings[i] == NULL){
+            free_results(sorting_strings, i);
+            fprintf(stderr,"Error to allocate memory");
+            return -1;
+        }
     }
 
-    FILE *input_file;
-    char str[MAX_INPUT_STRING_SIZE];
-
-    char *estr;
-    input_file = fopen (argv[2],"r");
+    FILE *input_file = fopen (argv[2],"r");
 
     if (input_file == NULL){
-        fprintf(stderr, "Error opening file\n");
+        free_results(sorting_strings, number_of_sorting_elements);
+        fprintf(stderr, "Error opening input file\n");
         return -1;
     }
 
-    unsigned int count_index = 0;
-    while (1){
-        estr = fgets(str, sizeof(str), input_file);
-        if (estr == NULL){
-            if (feof(input_file) != 0){
-                break;
-            }
-            else{
-                fprintf(stderr, "Error reading file");
-                return -1;
-            }
-        }
-        fill_in_string(str, sorting_strings, count_index);
-        count_index ++;
-    }
-
-    if (fclose(input_file) == EOF){
-        fprintf(stderr, "Error to close the file");
+    if (get_info_file(input_file, MAX_INPUT_STRING_SIZE, sorting_strings, number_of_sorting_elements)) {
+        fclose(input_file);
+        free_results(sorting_strings, number_of_sorting_elements);
+        fprintf(stderr, "Error with reading input file\n");
         return -1;
     }
+
+    fclose(input_file);
     //---------------------------------------------------------------
 
     if (name_sort_index == 0) bubble(sorting_strings, number_of_sorting_elements, compareFunc);
@@ -140,10 +139,11 @@ int main(int argc, char** argv) {
     else if (name_sort_index == 4) radix(sorting_strings, number_of_sorting_elements, compareFunc);
 
     //---------------------------------------------------------------
-    FILE *output_file;
-    output_file = fopen (argv[3],"w");
+    FILE *output_file = fopen (argv[3],"w");
     if (input_file == NULL){
-        fprintf(stderr, "Error opening file\n");
+        fclose(input_file);
+        free_results(sorting_strings, number_of_sorting_elements);
+        fprintf(stderr, "Error opening output file\n");
         return -1;
     }
     if (name_comparateur_index){
@@ -157,10 +157,7 @@ int main(int argc, char** argv) {
     }
 
 
-    if (fclose(output_file) == EOF){
-        fprintf(stderr, "Error to close the file");
-        return -1;
-    }
+    fclose(output_file);
     free_results(sorting_strings, number_of_sorting_elements);
     return 0;
 }
@@ -246,7 +243,7 @@ void quick_wrapper(strings_array_t array, int left, int right, comparator_func_t
 }
 
 void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func) {
-    quick_wrapper(array, 0, size-1, compare_func);
+    quick_wrapper(array, 0, (int)size-1, compare_func);
 }
 
 void radix(strings_array_t array, array_size_t size, comparator_func_t compare_func){
