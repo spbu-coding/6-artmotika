@@ -17,17 +17,6 @@ void free_results(char **results, unsigned int count) {
     free(results);
 }
 
-int compare_strings(char* string1, char* string2){
-    if (strlen(string1) == strlen(string2)){
-        for (unsigned long i = 0; i < strlen(string1); ++i){
-            if (string1[i] != string2[i]) return 0;
-        }
-        return 1;
-    }
-    return 0;
-}
-
-
 int read_arguments(int argc, char** argv, int* name_sort_index, int* name_comparateur_index){
     if (argc != 6) {
         fprintf(stderr, "Incorrect number of arguments. Should be 5 arguments\n");
@@ -68,13 +57,16 @@ int read_arguments(int argc, char** argv, int* name_sort_index, int* name_compar
 
 
     for (int i = 0; i < (int)count_of_sorts; ++i) {
-        if (compare_strings(argv[4], names_sorts[i])) *name_sort_index = i;
+        if (!strcmp(argv[4], names_sorts[i])){
+            *name_sort_index = i;
+            break;
+        }
     }
     if (*name_sort_index == -1) return -1;
 
-    if (compare_strings(argv[5], "asc")){
+    if (!strcmp(argv[5], "asc")){
         *name_comparateur_index = 0;
-    }else if (compare_strings(argv[5], "des")){
+    }else if (!strcmp(argv[5], "des")){
         *name_comparateur_index = 1;
     }else return -1;
 
@@ -90,7 +82,7 @@ int get_info_file(FILE* file, size_t max_length_of_string, strings_array_t sorti
         }
     }
     if(i < number_of_sorting_elements && feof(file)) {
-        fprintf(stderr, "Нou specified more arguments than there are in the file\n");
+        fprintf(stderr, "You specified more arguments than there are in the file\n");
         return -1;
     }
     else
