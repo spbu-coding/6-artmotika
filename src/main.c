@@ -232,7 +232,7 @@ void merge_wrapper(strings_array_t array, array_size_t size, comparator_func_t c
 }
 
 void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func){
-    merge_wrapper(array, size, compareFunc, 0,  (int)size);
+    merge_wrapper(array, size, compare_func, 0,  (int)size);
 }
 
 void quick_wrapper(strings_array_t array, array_size_t size, comparator_func_t compare_func, int first, int last){
@@ -261,6 +261,7 @@ void quick(strings_array_t array, array_size_t size, comparator_func_t compare_f
 }
 
 void radix(strings_array_t array, array_size_t size, comparator_func_t compare_func){
+    compare_func(array[0], array[0]);
     size_t length[size], max_length = 0;
     for (unsigned int i = 0; i < size; i++) {
         length[i] = strlen(array[i]) - 1;
