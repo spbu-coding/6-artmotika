@@ -193,71 +193,60 @@ void insertion(strings_array_t array, array_size_t size, comparator_func_t compa
     }
 }
 
-void merge_arrays(strings_array_t array, int left, int middle, int right){
-    int it1 = 0, it2 = 0;
-    char* results[right - left];
-
-    while (left + it1 < middle && middle + it2 < right){
-        if (compareFunc(array[middle + it2], array[left + it1])){
-            results[it1 + it2] = array[left + it1];
-            it1 ++;
-        }else{
-            results[it1 + it2] = array[middle + it2];
-            it2 ++;
+void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func) {
+    for (unsigned int i = size; i > 1; i = (1 + (i - 1) / 2)) {
+        size_t length = (size_t) (1 + (size - 1) / i);
+        for (unsigned int j = 0; j < i - 1; j += 2) {
+            size_t length1 = length, length2 = (((j + 2) * length) <= size) ? length : (size - (j + 1) * length), buffer_length = length1 + length2;
+            unsigned int ind1 = j * length, ind2 = (j + 1) * length;
+            char* buffer[buffer_length];
+            while (length1 > 0 && length2 > 0) {
+                if (compare_func(array[ind1], array[ind2]) <= 0) {
+                    buffer[buffer_length - (length1-- + length2)] = array[ind1++];
+                } else {
+                    buffer[buffer_length - (length1 + length2--)] = array[ind2++];
+                }
+            }
+            if (length1 > 0) {
+                memcpy(&buffer[buffer_length - length1], &array[ind1], length1 * sizeof(char*));
+            } else {
+                memcpy(&buffer[buffer_length - length2], &array[ind2], length2 * sizeof(char*));
+            }
+            memcpy(&array[j * length], buffer, buffer_length * sizeof(char*));
         }
     }
-
-    while (left + it1 < middle){
-        results[it1 + it2] = array[left + it1];
-        it1 ++;
-    }
-
-    while (middle + it2 < right){
-        results[it1 + it2] = array[middle + it2];
-        it2 ++;
-    }
-
-    for (int i = 0; i < it1 + it2; ++i){
-        array[left + i] = results[i];
-    }
 }
 
-void merge_wrapper(strings_array_t array, array_size_t size, comparator_func_t compare_func, int left, int right){
-    if (left + 1 >= right)
-        return;
-    int middle = (left + right) / 2;
-    merge_wrapper(array, size, compare_func, left, middle);
-    merge_wrapper(array, size, compare_func, middle, right);
-    merge_arrays(array, left, middle, right);
-}
-
-void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func){
-    merge_wrapper(array, size, compare_func, 0,  (int)size);
-}
-
-void quick_wrapper(strings_array_t array, array_size_t size, comparator_func_t compare_func, int first, int last){
-    if (first < last){
-        int left = first, right = last;
-        char* middle = array[(left+right)/2];
-        do{
-            while (compare_func(middle, array[left])) left++;
-            while (compare_func(array[right], middle)) right--;
-            if (left <= right){
-                char* tmp = array[left];
-                array[left] = array[right];
-                array[right] = tmp;
-                left++;
-                right--;
-            }
-        }while (left <= right);
-        quick_wrapper(array, size, compare_func, first, right);
-        quick_wrapper(array, size, compare_func, left, last);
-
+void quick_wrapper(strings_array_t array, int left, int right, comparator_func_t compare_func){
+    char* pivot = array[left];
+    int l_hold = left;
+    int r_hold = right;
+    while (left < right){
+        while (((compare_func(array[right], pivot)) || array[right] == pivot) && (left < right))
+            right--;
+        if (left != right){
+            array[left] = array[right];
+            left++;
+        }
+        while(((compare_func(pivot, array[left])) || array[left] == pivot )&& (left < right))
+            left++;
+        if (left != right){
+            array[right] = array[left];
+            right--;
+        }
     }
+    array[left] = pivot;
+    int tmp = left;
+    left = l_hold;
+    right = r_hold;
+    if (left < tmp)
+        quick_wrapper(array, left, tmp - 1, compare_func);
+    if (right > tmp)
+        quick_wrapper(array, tmp + 1, right, compare_func);
 }
 
-void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func){
-    quick_wrapper(array, size, compare_func, 0, (int)size-1);
+void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func) {
+    quick_wrapper(array, 0, size-1, compare_func);
 }
 
 void radix(strings_array_t array, array_size_t size, comparator_func_t compare_func){
