@@ -1,9 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "sortings.h"
 
-#define ASCII_COUNT 128
+#define CHAR_COUNT 256
+
+void swap(char **str1, char **str2){
+    char *tmp = *str2;
+    *str2 = *str1;
+    *str1 = tmp;
+}
 
 int compareFunc(const char* array1, const char* array2){
     if (strcmp(array1, array2) > 0) return 1;
@@ -15,6 +22,7 @@ void free_results(char **results, unsigned int count) {
         free(results[i]);
     }
     free(results);
+    results = NULL;
 }
 
 int read_arguments(int argc, char** argv, int* name_sort_index, int* name_comparateur_index){
@@ -22,38 +30,23 @@ int read_arguments(int argc, char** argv, int* name_sort_index, int* name_compar
         fprintf(stderr, "Incorrect number of arguments. Should be 5 arguments\n");
         return -1;
     }
-    if (!atoi(argv[1]) || atoi(argv[1]) < 0){
+    char *p = NULL;
+    const char *size_pointer = argv[1];
+    if(strtol(argv[1], &p, 10) < 0 || size_pointer == p){
         fprintf(stderr, "The first argument should be number > 0\n");
         return -1;
     }
-    for (int j = 2; j < 4; ++j) {
-        unsigned long index_expansion = 0;
-        for (unsigned long i = 0; i < strlen(argv[j]); ++i) {
-            if (argv[j][i] == '.') {
-                index_expansion = i + 1;
-                break;
-            }
-        }
-        if ((index_expansion != 0) && (index_expansion + 3 == strlen(argv[j]))) {
-            if (argv[j][index_expansion] != 't') {
-                fprintf(stderr, "Incorrect expansion\n");
-                return -1;
-            }
-            if (argv[j][index_expansion + 1] != 'x') {
-                fprintf(stderr, "Incorrect expansion\n");
-                return -1;
-            }
-            if (argv[j][index_expansion + 2] != 't') {
-                fprintf(stderr, "Incorrect expansion\n");
-                return -1;
-            }
-        } else {
-            fprintf(stderr, "Incorrect expansion\n");
-            return -1;
-        }
+
+    if(strstr(argv[2], ".txt") == NULL){
+        fprintf(stderr, "Incorrect expansion\n");
+        return -1;
+    }
+    if(strstr(argv[2], ".txt") == NULL){
+        fprintf(stderr, "Incorrect expansion\n");
+        return -1;
     }
     size_t count_of_sorts = 5;
-    char* names_sorts[5] = {"bubble", "insertion", "merge", "quick", "radix"};
+    char names_sorts[5][10] = {"bubble", "insertion", "merge", "quick", "radix"};
 
 
     for (int i = 0; i < (int)count_of_sorts; ++i) {
@@ -62,13 +55,19 @@ int read_arguments(int argc, char** argv, int* name_sort_index, int* name_compar
             break;
         }
     }
-    if (*name_sort_index == -1) return -1;
+    if (*name_sort_index == -1){
+        fprintf(stderr, "Incorrect name of algorithm\n");
+        return -1;
+    }
 
     if (!strcmp(argv[5], "asc")){
         *name_comparateur_index = 0;
     }else if (!strcmp(argv[5], "des")){
         *name_comparateur_index = 1;
-    }else return -1;
+    }else{
+        fprintf(stderr, "Incorrect name of comparator\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -93,7 +92,7 @@ int main(int argc, char** argv) {
     int name_sort_index = -1;
     int name_comparateur_index;
     if (read_arguments(argc, argv, &name_sort_index, &name_comparateur_index)) return -1;
-    unsigned int number_of_sorting_elements = atoi(argv[1]);
+    unsigned int number_of_sorting_elements = strtoul(argv[1], NULL, 10);
 
     strings_array_t sorting_strings = (strings_array_t) malloc(number_of_sorting_elements * sizeof(char*));
     if (sorting_strings == NULL) return -1;
@@ -123,13 +122,13 @@ int main(int argc, char** argv) {
 
     fclose(input_file);
     //----------------------Sorting strings---------------------------
-
-    if (name_sort_index == 0) bubble(sorting_strings, number_of_sorting_elements, compareFunc);
-    else if (name_sort_index == 1) insertion(sorting_strings, number_of_sorting_elements, compareFunc);
-    else if (name_sort_index == 2) merge(sorting_strings, number_of_sorting_elements, compareFunc);
-    else if (name_sort_index == 3) quick(sorting_strings, number_of_sorting_elements, compareFunc);
-    else if (name_sort_index == 4) radix(sorting_strings, number_of_sorting_elements, compareFunc);
-
+    if (number_of_sorting_elements > 0) {
+        if (name_sort_index == 0) bubble(sorting_strings, number_of_sorting_elements, compareFunc);
+        else if (name_sort_index == 1) insertion(sorting_strings, number_of_sorting_elements, compareFunc);
+        else if (name_sort_index == 2) merge(sorting_strings, number_of_sorting_elements, compareFunc);
+        else if (name_sort_index == 3) quick(sorting_strings, number_of_sorting_elements, compareFunc);
+        else if (name_sort_index == 4) radix(sorting_strings, number_of_sorting_elements, compareFunc);
+    }
     //---------------------------------------------------------------
     FILE *output_file = fopen (argv[3],"w");
     if (input_file == NULL){
@@ -138,13 +137,40 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Error opening output file\n");
         return -1;
     }
-    if (name_comparateur_index){
-        for (int i = (int)number_of_sorting_elements-1; i >= 0; --i){
-            fwrite(sorting_strings[i], sizeof(char), strlen(sorting_strings[i]), output_file);
+    if(!number_of_sorting_elements){
+        if(fputs("\n", output_file) == EOF){
+            fprintf(stderr, "Error opening output file\n");
+            return -1;
         }
-    }else{
-        for (unsigned int i = 0; i < number_of_sorting_elements; ++i){
-            fwrite(sorting_strings[i], sizeof(char), strlen(sorting_strings[i]), output_file);
+    }else {
+        if (!name_comparateur_index) {
+            for (size_t i = 0; i < number_of_sorting_elements; i++) {
+                if (fputs(sorting_strings[i], output_file) != EOF) {
+                    if (strcspn(sorting_strings[i], "\n") == strlen(sorting_strings[i])) {
+                        if (fputs("\n", output_file) == EOF) {
+                            fprintf(stderr, "Unable to write to file\n");
+                            return -1;
+                        }
+                    }
+                } else {
+                    fprintf(stderr, "Unable to write to file");
+                    return -1;
+                }
+            }
+        }else{
+            for (int i = (int)number_of_sorting_elements-1; i >= 0; --i){
+                if (fputs(sorting_strings[i], output_file) != EOF) {
+                    if (strcspn(sorting_strings[i], "\n") == strlen(sorting_strings[i])) {
+                        if (fputs("\n", output_file) == EOF) {
+                            fprintf(stderr, "Unable to write to file\n");
+                            return -1;
+                        }
+                    }
+                } else {
+                    fprintf(stderr, "Unable to write to file");
+                    return -1;
+                }
+            }
         }
     }
 
@@ -153,16 +179,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-
 void bubble(strings_array_t array, array_size_t size, comparator_func_t compare_func){
-    char* tmp;
     for (unsigned int i = 0; i < size - 1; ++i) {
         for (unsigned int j = 0; j < size - i - 1; ++j) {
             int result_compareFunc = compare_func(array[j], array[j+1]);
             if (result_compareFunc){
-                tmp = array[j];
-                array[j] = array[j+1];
-                array[j+1] = tmp;
+                swap(&array[j], &array[j+1]);
             }
         }
     }
@@ -181,94 +203,109 @@ void insertion(strings_array_t array, array_size_t size, comparator_func_t compa
     }
 }
 
-void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func) {
-    for (unsigned int i = size; i > 1; i = (1 + (i - 1) / 2)) {
-        size_t length = (size_t) (1 + (size - 1) / i);
-        for (unsigned int j = 0; j < i - 1; j += 2) {
-            size_t length1 = length, length2 = (((j + 2) * length) <= size) ? length : (size - (j + 1) * length), buffer_length = length1 + length2;
-            unsigned int ind1 = j * length, ind2 = (j + 1) * length;
-            char* buffer[buffer_length];
-            while (length1 > 0 && length2 > 0) {
-                if (compare_func(array[ind1], array[ind2]) <= 0) {
-                    buffer[buffer_length - (length1-- + length2)] = array[ind1++];
-                } else {
-                    buffer[buffer_length - (length1 + length2--)] = array[ind2++];
-                }
-            }
-            if (length1 > 0) {
-                memcpy(&buffer[buffer_length - length1], &array[ind1], length1 * sizeof(char*));
-            } else {
-                memcpy(&buffer[buffer_length - length2], &array[ind2], length2 * sizeof(char*));
-            }
-            memcpy(&array[j * length], buffer, buffer_length * sizeof(char*));
+void merge_wrapper2(strings_array_t array, int left, int middle, int right, comparator_func_t compare_func){
+    int lsize = middle - left + 1;
+    int rsize = right - middle;
+    char *lbuff[lsize], *rbuff[rsize];
+    for(int i = 0; i < lsize; i++) lbuff[i] = array[left + i];
+    for(int j = 0; j < rsize; j++) rbuff[j] = array[middle + 1 + j];
+    int i = 0;
+    int j = 0;
+    int k = left;
+    while(i < lsize && j < rsize){
+        if(!compare_func(lbuff[i], rbuff[j])){
+            array[k] = lbuff[i];
+            i++;
         }
+        else{
+            array[k] = rbuff[j];
+            j++;
+        }
+        k++;
+    }
+    while(i < lsize){
+        array[k] = lbuff[i];
+        i++;
+        k++;
+    }
+    while(j < rsize){
+        array[k] = rbuff[j];
+        j++;
+        k++;
     }
 }
 
-int partition(strings_array_t array, int low, int high, comparator_func_t compare_func){
-    int i = low, j = high + 1;
-    while(1){
-        while(compare_func(array[low], array[++i])){
-            if (i == high) break;
+void merge_wrapper1(strings_array_t array, int left, int right, comparator_func_t compare_func){
+    if(left >= right) return;
+    int middle = (left + right - 1) / 2;
+    merge_wrapper1(array, left, middle, compare_func);
+    merge_wrapper1(array, middle + 1, right, compare_func);
+    merge_wrapper2(array, left, middle, right, compare_func);
+}
+
+void merge(strings_array_t array, array_size_t size, comparator_func_t compare_func){
+    merge_wrapper1(array, 0, (int)size - 1, compare_func);
+}
+
+int quick_wrapper2(strings_array_t array, int left, int right, comparator_func_t compare_func){
+    char *p = array[right];
+    int i = (left - 1);
+
+    for(int j = left; j <= right - 1; j++){
+        if(!compare_func(array[j], p)){
+            i++;
+            swap(&array[i], &array[j]);
         }
-        while (compare_func(array[--j], array[low])){
-            if (j == low) break;
-        }
-        if (i >= j) break;
-        char* tmp = array[i];
-        array[i] = array[j];
-        array[j] = tmp;
     }
-    char* tmp = array[low];
-    array[low] = array[j];
-    array[j] = tmp;
-    return j;
+    swap(&array[i + 1], &array[right]);
+    return (i + 1);
 }
 
-void quick_wrapper(strings_array_t array, int low, int high, comparator_func_t compare_func){
-    if (high <= low) return;
-    int j = partition(array, low, high, compare_func);
-    quick_wrapper(array, low, j - 1, compare_func);
-    quick_wrapper(array, j + 1, high, compare_func);
+void quick_wrapper1(strings_array_t array, int left, int right, comparator_func_t compare_func){
+    if(left < right){
+        int middle = quick_wrapper2(array, left, right, compare_func);
+        quick_wrapper1(array, left, middle - 1, compare_func);
+        quick_wrapper1(array, middle + 1, right, compare_func);
+    }
 }
 
-void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func) {
-    quick_wrapper(array, 0, (int)size-1, compare_func);
+void quick(strings_array_t array, array_size_t size, comparator_func_t compare_func){
+    quick_wrapper1(array, 0, (int) size - 1, compare_func);
 }
 
 void radix(strings_array_t array, array_size_t size, comparator_func_t compare_func){
-    compare_func(array[0], array[0]);
-    size_t length[size], max_length = 0;
-    for (unsigned int i = 0; i < size; i++) {
-        length[i] = strlen(array[i]) - 1;
-        if (length[i] > max_length) {
-            max_length = length[i];
-        }
+    const bool is_asc = (!compare_func("a", "b"));
+    array_size_t max_length = 0;
+    for(size_t i = 0; i < size; i++){
+        array_size_t length = strlen(array[i]);
+        if(max_length < length) max_length = length;
     }
-    for (int i = (int)max_length - 1; i >= 0; i--) {
-        unsigned int char_counter[ASCII_COUNT] = {0};
-        for (unsigned int j = 0; j < size; j++) {
-            if ((int)length[j] - 1 >= i) {
-                char_counter[(unsigned int)array[j][i]]++;
-            } else {
-                char_counter[0]++;
+    if(max_length == 0) return;
+    size_t buff[CHAR_COUNT];
+    strings_array_t tmp = (strings_array_t)(malloc(size * sizeof(char *)));
+    for(size_t i = max_length; i > 0; i--){
+        size_t counter = 0;
+        for(size_t j = 0; j < CHAR_COUNT; j++) buff[j] = 0;
+        for(size_t j = 0; j < size; j++) buff[(unsigned char)(array[j][i - 1])]++;
+        if(is_asc){
+            for(size_t j = 0; j < CHAR_COUNT; j++){
+                size_t value = buff[j];
+                buff[j] = counter;
+                counter += value;
             }
         }
-        for (unsigned int j = 1; j < ASCII_COUNT; j++) {
-            char_counter[j] += char_counter[j - 1];
-        }
-        char* buffer[size];
-        size_t buffer_length[size];
-        for (int j = (int)size - 1; j >= 0; j--) {
-            if ((int)length[j] - 1 >= i) {
-                buffer[(char_counter[(unsigned int)array[j][i]]) - 1] = array[j];
-                buffer_length[(char_counter[(unsigned int)array[j][i]]--) - 1] = length[j];
-            } else {
-                buffer[(char_counter[0]) - 1] = array[j];
-                buffer_length[(char_counter[0]--) - 1] = length[j];
+        else{
+            for(size_t j = CHAR_COUNT; j > 0; j--){
+                size_t value = buff[j - 1];
+                buff[j - 1] = counter;
+                counter += value;
             }
         }
-        memcpy(array, buffer, size * sizeof(char *));
-        memcpy(length, buffer_length, size * sizeof(size_t));
+        for(size_t j = 0; j < size; j++){
+            tmp[buff[(unsigned char)array[j][i - 1]]] = array[j];
+            buff[(unsigned char)array[j][i - 1]]++;
+        }
+        for(size_t j = 0; j < size; j++) array[j] = tmp[j];
     }
+    free(tmp);
 }
